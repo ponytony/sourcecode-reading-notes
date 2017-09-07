@@ -1,2 +1,5 @@
 # sourcecode-reading-notes
-some notes of source code,include(redux...)
+some notes of source code,include:
+
+- [x] redux
+- [ ] axios
