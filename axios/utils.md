@@ -255,7 +255,7 @@ function forEach(obj, fn) {
   // Force an array if not already something iterable
   if (typeof obj !== 'object' && !isArray(obj)) {
     /*eslint no-param-reassign:0*/
-    obj = [obj];//将obj包装成array
+    obj = [obj];//如果obj不是一个可迭代对象，包装成array
   }
 
   if (isArray(obj)) {
@@ -267,7 +267,7 @@ function forEach(obj, fn) {
     // Iterate over object keys
     for (var key in obj) {
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        fn.call(null, obj[key], key, obj);//这样写的话obj[key]又变成了obj，难道就是为了获得第二个和第三个参数吗
+        fn.call(null, obj[key], key, obj);//伊次执行
       }
     }
   }
@@ -307,7 +307,7 @@ function merge(/* obj1, obj2, obj3, ... */) {
   }
   return result;
 }
-//利用递归将所有obj的键值对放到一个扁平的obj里面
+//利用递归将所有obj的键值对放到obj里面,结构深度也和原来一样
 ```
 ```
 /**
@@ -321,7 +321,7 @@ function merge(/* obj1, obj2, obj3, ... */) {
 function extend(a, b, thisArg) {//如果b里面有函数，那么thisarg就用来给这个函数当做参数使用
   forEach(b, function assignValue(val, key) {//assignvalue的参数是obj[i], i, obj
     if (thisArg && typeof val === 'function') {
-      a[key] = bind(val, thisArg);//如果是function，则执行，并将结果放入a
+      a[key] = bind(val, thisArg);//如果是function，则先绑定，并将绑定后的事例放入a
     } else {
       a[key] = val;//如果不是，就直接放入
     }
