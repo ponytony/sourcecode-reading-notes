@@ -1,3 +1,5 @@
+这个md里的函数都是不能重复使用的
+
 ## utils
 
 ```
@@ -281,14 +283,15 @@ function forEach(obj, fn) {
  *
  * Example:
  *
- * ```js
+ * 
  * var result = merge({foo: 123}, {foo: 456});
  * console.log(result.foo); // outputs 456
- * ```
+ * 
  *
  * @param {Object} obj1 Object to merge
  * @returns {Object} Result of all merge properties
  */
+
 function merge(/* obj1, obj2, obj3, ... */) {
   var result = {};//闭包
   function assignValue(val, key) {
@@ -334,7 +337,7 @@ function bind(fn, thisArg) {
     for (var i = 0; i < args.length; i++) {
       args[i] = arguments[i];
     }//通过循环将bind后面第二个括号里的参数赋值给args
-    return fn.apply(thisArg, args);//将this指向thisargs，并运行
+    return fn.apply(thisArg, args);//将this指向thisargs，并运行,这个thisarg是什么还摸不准？？？
   };
 };
 ```
