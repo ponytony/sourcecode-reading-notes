@@ -30,8 +30,9 @@ function getDefaultAdapter()  {
 
 var defaults = {
   adapter: getDefaultAdapter(),
-
+//这个函数是将传入的data检测一下，并且转化成字符或者二进制，或者其他形式的数据
 //这里的参数还没有传入
+//transformRequest是在dispatch中使用，transformRequest（config.data,config.headers)
   transformRequest: [function transformRequest(data, headers) {
     normalizeHeaderName(headers, 'Content-Type');
     if (utils.isFormData(data) ||

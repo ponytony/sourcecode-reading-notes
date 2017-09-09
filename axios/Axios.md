@@ -1,6 +1,11 @@
-## 这个md文件中，前面的axios.js，是模块的输出文件，
+## 这个md文件中，依次是axios.js,Axios.js,transforndata.js,dispatchrequest.js
 
-## 后面写Axios.js，是模块的核心
+axios是给外面的接口，transforndata只是个用来转化data的函数（給config.transformresponse和config.transformrequest服务的）
+
+Axios是个关键，因为这个函数会对config进行一些检验和处理，并且也是在这个文件中调用了dispatchRequest。
+
+dispatchRequest是最重要的函数，这个函数中调用了adapter，对headers做了一点修改，也是在这个文件中给服务器请求的
+
 //总体来说axios.js没看懂，createinstance中，bind弄得人糊涂，axios的继承方法以前也是没见过
 
 ## axios.js
@@ -48,13 +53,13 @@ module.exports.default = axios;
 ```
 
 ## Axios.js
-//总的来说这个js文件是个决定axios运行方式的文件，提供了request方法
+//总的来说这个js文件是个重要的文件，提供了request方法，主要是对config的处理，检验
 ```
 function Axios(instanceConfig) {
   this.defaults = instanceConfig;//复制config
   this.interceptors = {
     request: new InterceptorManager(),//添加管理器，是一个数组，还有三个方法
-    response: new InterceptorManager()
+    response: new InterceptorManager()//new Promise其实就在这个实例中
   };
 }
 ```
@@ -66,7 +71,7 @@ Axios.prototype.request = function request(config) {
   if (typeof config === 'string') {
     config = utils.merge({
       url: arguments[0]
-    }, arguments[1]);//这里的arguments[1]指的是什么
+    }, arguments[1]);//这里的英文也写了，参数实际上应该是axios('example/url'[, config])
   }
 
   config = utils.merge(defaults, this.defaults, { method: 'get' }, config);//合并，四个参数中越后面越重要，默认的方法是get
@@ -78,20 +83,22 @@ Axios.prototype.request = function request(config) {
   }
 
   // Hook up interceptors middleware
-  var chain = [dispatchRequest, undefined];//???
-  var promise = Promise.resolve(config);//初始化promise，不过resolve后的括号内不应该是一个函数吗？？？
-
+  //这个dispatchrequest才是执行ajax的关键，这个chain中的其他参数都是对config的修改，或者其他处理
+  var chain = [dispatchRequest, undefined];//这里为什么是undefine？大概是因为dispatchRequest中已经做过了reject的处理，不用再这个列表中再处理一遍reject
+  var promise = Promise.resolve(config);//初始化promise，自己去试了一下，原来promise可以用Promise.resolve(data)来使用的
+//要注意的是这里的foreach不是js定义的那个foreach，而是interceptorManager中定义的那个
+//这里的foreach默认设置中是不会执行的，因为没有把拦截器添加到而是interceptorManager中定义的那个this.handler中
   this.interceptors.request.forEach(function unshiftRequestInterceptors(interceptor) {
     chain.unshift(interceptor.fulfilled, interceptor.rejected);
-  });//从头部添加request
-
+  });//从头部添加拦截器
+//还有要注意的是这里没有使用interceptorManager中的use和reject，因为这里已经将需要处理的数据准备好了，只要复制进interceptorManager中的handler就好
   this.interceptors.response.forEach(function pushResponseInterceptors(interceptor) {
     chain.push(interceptor.fulfilled, interceptor.rejected);
-  });从尾部添加response
+  });从尾部添加response的拦截器
 
   while (chain.length) {
     promise = promise.then(chain.shift(), chain.shift());
-  }//从头部开始执行
+  }//执行拦截器和dispatchrequest
 
   return promise;
 };
@@ -117,4 +124,94 @@ utils.forEach(['post', 'put', 'patch'], function forEachMethodWithData(method) {
     }));
   };
 });
+```
+
+
+## transformData(data, headers, fns)
+这个函数就是将fns拆分开来，fn(data,henders)
+```
+function transformData(data, headers, fns) {
+  /*eslint no-param-reassign:0*/
+  utils.forEach(fns, function transform(fn) {
+    data = fn(data, headers);
+  });
+
+  return data;
+};
+```
+
+## dispatchRequest.js
+
+    
+这个函数传入config，用config.transformRequest函数来处理config.data,config.headers,然后取出config.headers[method]的值，放入config.headers，再用adaptor来处理config，再用config.transformRequest函数来处理response.data,response.headers（response是.then中传入的参数，这时候config.headers已经改过一次了），最后返回response或者一个reject
+```
+function throwIfCancellationRequested(config) {
+  if (config.cancelToken) {
+    config.cancelToken.throwIfRequested();
+  }
+}
+```
+
+```
+function dispatchRequest(config) {
+  throwIfCancellationRequested(config);
+
+  // Ensure headers exist
+  config.headers = config.headers || {};
+
+  // Transform request data
+  config.data = transformData(
+    config.data,
+    config.headers,
+    config.transformRequest//transform在default.js中有设置
+  );
+
+  // Flatten headers
+  config.headers = utils.merge(
+    config.headers.common || {},
+    config.headers[config.method] || {},//从这一行可以看出config有个method，headers里面还有个对应的函数
+    config.headers || {}
+  );
+//删除header里面的各种方法，不过上面不是才刚刚把这些方法添加进去吗？？？
+//仔细看了一下，这里其实就是把header中 的各种get，post这类下面的obj取出来，比如'Content-Type': 'application/x-www-form-urlencoded'，这个是default中的一个DEFAULT_CONTENT_TYPE，default会在结尾时根据method类型决定是否加入到defaults.headers[method]，放到了
+  utils.forEach(
+    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'],
+    function cleanHeaderConfig(method) {
+      delete config.headers[method];
+    }
+  );
+
+  var adapter = config.adapter || defaults.adapter;//这个adapter是看环境来决定使用浏览器的那个adapter还是用于node的atapter
+
+//关键的来了，下面这一样是整个axios的最核心，这里会提交请求并且获取response，也可能会获取reject
+  return adapter(config).then(function onAdapterResolution(response) {
+    throwIfCancellationRequested(config);
+
+    // Transform response data
+    //转化response，    具体看default.js
+    response.data = transformData(
+      response.data,
+      response.headers,
+      config.transformResponse
+    );
+
+    return response;
+  }, function onAdapterRejection(reason) {//这个函数是处理拒绝之后的data的
+    if (!isCancel(reason)) {
+      throwIfCancellationRequested(config);
+
+      // Transform response data
+      //这里也要转化一下
+      if (reason && reason.response) {
+        reason.response.data = transformData(
+          reason.response.data,
+          reason.response.headers,
+          config.transformResponse
+        );
+      }
+    }
+
+    return Promise.reject(reason);
+  });
+};
 ```
