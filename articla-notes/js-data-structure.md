@@ -307,7 +307,18 @@ function uniqueArray(arr){//用了indexof和push
     return retArray;
 }
 ```
+自己刚想到的,可惜依然不能分辨1和‘1’
+```
+function uniqueArray(arr) {
+        var temp={};
+        for(var i=0;i<arr.length;i++){
+            temp[arr[i]]=[]
+        }
+        return Object.keys(temp)
+    }
+```
 #### 方法四
+
 ```
 goog.array.removeDuplicates = function(arr, opt_rv, opt_hashFn) {
   var returnArray = opt_rv || arr;
@@ -315,20 +326,44 @@ goog.array.removeDuplicates = function(arr, opt_rv, opt_hashFn) {
     // Prefix each type with a single character representing the type to
     // prevent conflicting keys (e.g. true and 'true').
     return goog.isObject(item) ? 'o' + goog.getUid(item) :
-                                 (typeof item).charAt(0) + item;//这一段看不懂
+                                 (typeof item).charAt(0) + item;//没看源码，是obj，就在前面加上o,不是obj，就在前面加上type的第一个字母
   };
   var hashFn = opt_hashFn || defaultHashFn;
 
   var seen = {}, cursorInsert = 0, cursorRead = 0;
   while (cursorRead < arr.length) {
     var current = arr[cursorRead++];
-    var key = hashFn(current);
-    if (!Object.prototype.hasOwnProperty.call(seen, key)) {
+    var key = hashFn(current);//这里应该是转化成了hash???
+    if (!Object.prototype.hasOwnProperty.call(seen, key)) {//关键
       seen[key] = true;
       returnArray[cursorInsert++] = current;
     }
   }
   returnArray.length = cursorInsert;
 };
+```
+
+我自己写的一个，方法和方法四一样，只是能看得懂了而已
+```
+function uniqueArray(arr) {
+        var temp={};
+        function change(item){
+            return (typeof item).charAt(0)+item
+        }
+        function parse(item){
+            if(item.charAt(0)==='s'){
+                return String(item.slice(1))
+            }
+            else if(item.charAt(0)==='n'){
+                return Number(item.slice(1))
+            }
+        }
+        for(var i=0;i<arr.length;i++){
+            temp[change(arr[i])]=[]
+        }
+        return Object.keys(temp).map(function(v){return parse(v)})
+    }
+    var a=[1,2,2,3,'2'];
+    console.log(uniqueArray(a))
 ```
 
