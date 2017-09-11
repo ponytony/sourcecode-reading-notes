@@ -6,28 +6,28 @@ Axios是个关键，因为这个函数会对config进行一些检验和处理，
 
 dispatchRequest是最重要的函数，这个函数中调用了adapter，对headers做了一点修改，也是在这个文件中给服务器请求的
 
-//总体来说axios.js没看懂，createinstance中，bind弄得人糊涂，axios的继承方法以前也是没见过
+//总体来说axios.js没看懂，只能写个大概过程
 
 ## axios.js
 ```
 function createInstance(defaultConfig) {
-  var context = new Axios(defaultConfig);
+  var context = new Axios(defaultConfig);//创建Axios实例
   var instance = bind(Axios.prototype.request, context);//这里其实就是Axios.prototype.request.apply（context（Axios的实例），现在还没有设置的参数），Axios.prototype.request本来就是context实例的方法呀，调用request的时候也能改变this.interceptors的值的呀？？？
 
   // Copy axios.prototype to instance
-  utils.extend(instance, Axios.prototype, context);//这里又把 Axios.prototype绑定到了context实例上，还把 Axios.prototype复制给了instance
+  utils.extend(instance, Axios.prototype, context);//这里又把 Axios.prototype绑定到了context实例上，还把 Axios.prototype复制给了instance(Axios.prototype.request)
 
   // Copy context to instance
   utils.extend(instance, context);//把context复制给了instance，这回没有绑定了
 
-  return instance;
-}
+  return instance;//这个instance是一个Axios.prototype.request，还有Axios.prototype中的方法，还有一个Axios实例
+}//这样写应该是为了axios写法的多样性，比如：axios（），axios.get(),axios.request(),
 
 // Create the default instance to be exported
 var axios = createInstance(defaults);//创建默认实例
 
 // Expose Axios class to allow class inheritance
-axios.Axios = Axios;//???继承？
+axios.Axios = Axios;//这个应该是为了在完成一个ajax之后用response再来创建一个ajax
 
 // Factory for creating new instances
 axios.create = function create(instanceConfig) {
@@ -35,7 +35,7 @@ axios.create = function create(instanceConfig) {
 };//这里给出了create方法
 
 // Expose Cancel & CancelToken
-axios.Cancel = require('./cancel/Cancel');//？？？还没看
+axios.Cancel = require('./cancel/Cancel');//取消请求
 axios.CancelToken = require('./cancel/CancelToken');
 axios.isCancel = require('./cancel/isCancel');
 

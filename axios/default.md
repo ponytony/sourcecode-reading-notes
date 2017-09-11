@@ -83,7 +83,7 @@ var defaults = {
 defaults.headers = {
   common: {
     'Accept': 'application/json, text/plain, */*'
-  }
+  }//common最后会和config.headers合并
 };
 
 utils.forEach(['delete', 'get', 'head'], function forEachMethodNoData(method) {

@@ -50,7 +50,7 @@ function write(name, value, expires, path, domain, secure) {
   ```
       read: function read(name) {
         var match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-        return (match ? decodeURIComponent(match[3]) : null);
+        return (match ? decodeURIComponent(match[3]) : null);//在正则中，直接match一个文本只能获得一个len为1的列表，用括号抱起来之后就不一样了
       }
 ```
       
